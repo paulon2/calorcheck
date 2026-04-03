@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Calorie Tracker API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: settings
+    description: User settings (daily calorie goal)
+  - name: food-entries
+    description: Food diary entries
+  - name: summary
+    description: Daily summary and stats
 paths:
   /healthz:
     get:
@@ -24,6 +30,126 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get user settings
+      responses:
+        "200":
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update user settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsBody"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+
+  /food-entries:
+    get:
+      operationId: listFoodEntries
+      tags: [food-entries]
+      summary: List food entries for a given date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            description: "Date in YYYY-MM-DD format. Defaults to today."
+      responses:
+        "200":
+          description: List of food entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FoodEntry"
+    post:
+      operationId: createFoodEntry
+      tags: [food-entries]
+      summary: Add a food entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFoodEntryBody"
+      responses:
+        "201":
+          description: Created food entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodEntry"
+
+  /food-entries/{id}:
+    delete:
+      operationId: deleteFoodEntry
+      tags: [food-entries]
+      summary: Delete a food entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /summary:
+    get:
+      operationId: getDailySummary
+      tags: [summary]
+      summary: Get daily calorie summary for a given date
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            description: "Date in YYYY-MM-DD format. Defaults to today."
+      responses:
+        "200":
+          description: Daily summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailySummary"
+
+  /weekly-stats:
+    get:
+      operationId: getWeeklyStats
+      tags: [summary]
+      summary: Get calorie totals for the last 7 days
+      responses:
+        "200":
+          description: Weekly stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DayStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +160,126 @@ components:
       required:
         - status
 
+    Settings:
+      type: object
+      properties:
+        id:
+          type: integer
+        dailyGoal:
+          type: integer
+          description: Daily calorie goal in kcal
+      required:
+        - id
+        - dailyGoal
+
+    UpdateSettingsBody:
+      type: object
+      properties:
+        dailyGoal:
+          type: integer
+          minimum: 500
+          maximum: 10000
+      required:
+        - dailyGoal
+
+    FoodEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        calories:
+          type: integer
+        quantity:
+          type: string
+        meal:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        date:
+          type: string
+          description: "Date in YYYY-MM-DD format"
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - calories
+        - quantity
+        - meal
+        - date
+        - createdAt
+
+    CreateFoodEntryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        calories:
+          type: integer
+          minimum: 0
+        quantity:
+          type: string
+        meal:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        date:
+          type: string
+          description: "Date in YYYY-MM-DD format. Defaults to today."
+      required:
+        - name
+        - calories
+        - quantity
+        - meal
+
+    DailySummary:
+      type: object
+      properties:
+        date:
+          type: string
+        totalCalories:
+          type: integer
+        dailyGoal:
+          type: integer
+        remaining:
+          type: integer
+          description: Positive = calories left, negative = over goal
+        percentUsed:
+          type: number
+        breakdownByMeal:
+          type: object
+          properties:
+            breakfast:
+              type: integer
+            lunch:
+              type: integer
+            dinner:
+              type: integer
+            snack:
+              type: integer
+          required: [breakfast, lunch, dinner, snack]
+        status:
+          type: string
+          enum: [on_track, warning, over_goal]
+      required:
+        - date
+        - totalCalories
+        - dailyGoal
+        - remaining
+        - percentUsed
+        - breakdownByMeal
+        - status
+
+    DayStats:
+      type: object
+      properties:
+        date:
+          type: string
+        totalCalories:
+          type: integer
+        dailyGoal:
+          type: integer
+      required:
+        - date
+        - totalCalories
+        - dailyGoal
