@@ -107,31 +107,40 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   res.status(201).json(serializeUser(user));
 });
 
-router.post("/auth/login", async (req, res): Promise<void> => {
-  const parsed = LoginBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Dados invalidos" });
-    return;
+router.post("/auth/login", async (req, res) => {
+  try {
+    const parsed = LoginBody.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Dados invalidos" });
+
+    const { email, password } = parsed.data;
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
+    if (!user) return res.status(401).json({ error: "E-mail ou senha incorretos" });
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) return res.status(401).json({ error: "E-mail ou senha incorretos" });
+
+    req.session.userId = user.id;
+
+    // DEBUG: log do objeto da sessão
+    console.log("Sessao antes de salvar:", req.session);
+
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((err) => {
+        if (err) {
+          console.error("Erro ao salvar sessao:", err);
+          return reject(err);
+        }
+        resolve();
+      })
+    );
+
+    console.log("Sessao salva com sucesso!");
+    res.json(serializeUser(user));
+  } catch (err) {
+    console.error("Erro no login:", err);
+    res.status(500).json({ error: "Erro interno no servidor" });
   }
-
-  const { email, password } = parsed.data;
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase()));
-  if (!user) {
-    res.status(401).json({ error: "E-mail ou senha incorretos" });
-    return;
-  }
-
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) {
-    res.status(401).json({ error: "E-mail ou senha incorretos" });
-    return;
-  }
-
-  req.session.userId = user.id;
-  await new Promise<void>((resolve, reject) => req.session.save((err) => (err ? reject(err) : resolve())));
-
-  res.json(serializeUser(user));
 });
 
 router.post("/auth/logout", (req, res): void => {
