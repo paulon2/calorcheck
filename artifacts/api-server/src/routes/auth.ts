@@ -5,9 +5,27 @@ import { db, usersTable } from "@workspace/db";
 import { z } from "zod/v4";
 import { calculateDailyGoal } from "../lib/calorie-calc.js";
 import { requireAuth } from "../middlewares/require-auth.js";
+import crypto from "crypto";
 
 const router: IRouter = Router();
 
+// ─── In-memory token store for password reset ────────────────────────────────
+// Tokens expire in 30 minutes. Lost on server restart (acceptable for small apps).
+interface ResetToken {
+  userId: number;
+  email: string;
+  expiry: number;
+}
+const resetTokens = new Map<string, ResetToken>();
+
+function pruneExpiredTokens() {
+  const now = Date.now();
+  for (const [token, data] of resetTokens) {
+    if (data.expiry < now) resetTokens.delete(token);
+  }
+}
+
+// ─── Schemas ─────────────────────────────────────────────────────────────────
 const RegisterBody = z.object({
   email: z.string().email("E-mail invalido"),
   name: z.string().min(2, "Nome deve ter ao menos 2 caracteres"),
@@ -25,6 +43,7 @@ const LoginBody = z.object({
   password: z.string().min(1),
 });
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function serializeUser(user: typeof usersTable.$inferSelect) {
   return {
     id: user.id,
@@ -40,6 +59,15 @@ function serializeUser(user: typeof usersTable.$inferSelect) {
     createdAt: user.createdAt.toISOString(),
   };
 }
+
+function getAppUrl(req: { headers: { host?: string; "x-forwarded-proto"?: string } }): string {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  const protocol = (req.headers["x-forwarded-proto"] as string) ?? "https";
+  const host = req.headers.host ?? "localhost";
+  return `${protocol}://${host}`;
+}
+
+// ─── Routes ──────────────────────────────────────────────────────────────────
 
 router.post("/auth/register", async (req, res): Promise<void> => {
   const parsed = RegisterBody.safeParse(req.body);
@@ -146,6 +174,71 @@ router.patch("/auth/me", requireAuth, async (req, res): Promise<void> => {
     .returning();
 
   res.json(serializeUser(updated));
+});
+
+// ─── Password Reset ───────────────────────────────────────────────────────────
+
+router.post("/auth/forgot-password", async (req, res): Promise<void> => {
+  const body = z.object({ email: z.string().email() }).safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "E-mail invalido" });
+    return;
+  }
+
+  pruneExpiredTokens();
+
+  const email = body.data.email.toLowerCase();
+  const [user] = await db.select({ id: usersTable.id, email: usersTable.email }).from(usersTable).where(eq(usersTable.email, email));
+
+  if (!user) {
+    // Don't reveal whether email exists
+    res.json({ ok: true });
+    return;
+  }
+
+  const token = crypto.randomUUID();
+  resetTokens.set(token, {
+    userId: user.id,
+    email: user.email,
+    expiry: Date.now() + 30 * 60 * 1000, // 30 minutes
+  });
+
+  const appUrl = getAppUrl(req);
+  const resetUrl = `${appUrl}/reset-password?token=${token}`;
+
+  // Log to server console so admin can retrieve it from Render/server logs
+  console.log(`[Password Reset] ${email} → ${resetUrl}`);
+
+  // Return the reset URL directly so the frontend can show it
+  // (acceptable for small personal apps without email configuration)
+  res.json({ ok: true, resetUrl });
+});
+
+router.post("/auth/reset-password", async (req, res): Promise<void> => {
+  const body = z.object({
+    token: z.string().min(1),
+    newPassword: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
+  }).safeParse(req.body);
+
+  if (!body.success) {
+    res.status(400).json({ error: body.data ? "Senha deve ter ao menos 6 caracteres" : "Dados invalidos" });
+    return;
+  }
+
+  pruneExpiredTokens();
+
+  const tokenData = resetTokens.get(body.data.token);
+  if (!tokenData || tokenData.expiry < Date.now()) {
+    res.status(400).json({ error: "Link de recuperacao invalido ou expirado. Solicite um novo." });
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(body.data.newPassword, 12);
+  await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, tokenData.userId));
+
+  resetTokens.delete(body.data.token);
+
+  res.json({ ok: true });
 });
 
 export default router;
