@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "sUqSfXxmImgmXBxk-WxL3"
+uri = "file://DEPLOY.md"
+type = "text"
+title = "Guia de Implementação — CalorCheck"

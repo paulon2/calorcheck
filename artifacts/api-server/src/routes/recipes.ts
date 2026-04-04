@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, recipesTable } from "@workspace/db";
 import {
   ListRecipesQueryParams,
@@ -30,12 +30,18 @@ router.get("/recipes", async (req, res): Promise<void> => {
     return;
   }
 
-  let query = db.select().from(recipesTable);
+  const userId = req.session.userId!;
+  const conditions = [eq(recipesTable.userId, userId)];
   if (parsed.data.favoritesOnly === "true") {
-    query = query.where(eq(recipesTable.isFavorite, true)) as typeof query;
+    conditions.push(eq(recipesTable.isFavorite, true));
   }
 
-  const recipes = await query.orderBy(recipesTable.createdAt);
+  const recipes = await db
+    .select()
+    .from(recipesTable)
+    .where(and(...conditions))
+    .orderBy(recipesTable.createdAt);
+
   res.json(ListRecipesResponse.parse(recipes.map(serializeRecipe)));
 });
 
@@ -46,9 +52,12 @@ router.post("/recipes", async (req, res): Promise<void> => {
     return;
   }
 
+  const userId = req.session.userId!;
+
   const [recipe] = await db
     .insert(recipesTable)
     .values({
+      userId,
       title: parsed.data.title,
       description: parsed.data.description ?? "",
       ingredients: parsed.data.ingredients,
@@ -70,10 +79,11 @@ router.get("/recipes/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const userId = req.session.userId!;
   const [recipe] = await db
     .select()
     .from(recipesTable)
-    .where(eq(recipesTable.id, params.data.id));
+    .where(and(eq(recipesTable.id, params.data.id), eq(recipesTable.userId, userId)));
 
   if (!recipe) {
     res.status(404).json({ error: "Recipe not found" });
@@ -91,9 +101,10 @@ router.delete("/recipes/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const userId = req.session.userId!;
   const [deleted] = await db
     .delete(recipesTable)
-    .where(eq(recipesTable.id, params.data.id))
+    .where(and(eq(recipesTable.id, params.data.id), eq(recipesTable.userId, userId)))
     .returning();
 
   if (!deleted) {
@@ -118,10 +129,11 @@ router.patch("/recipes/:id/favorite", async (req, res): Promise<void> => {
     return;
   }
 
+  const userId = req.session.userId!;
   const [updated] = await db
     .update(recipesTable)
     .set({ isFavorite: body.data.isFavorite })
-    .where(eq(recipesTable.id, params.data.id))
+    .where(and(eq(recipesTable.id, params.data.id), eq(recipesTable.userId, userId)))
     .returning();
 
   if (!updated) {

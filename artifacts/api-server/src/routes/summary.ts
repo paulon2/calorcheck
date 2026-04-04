@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, foodEntriesTable, settingsTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
+import { db, foodEntriesTable, usersTable } from "@workspace/db";
 import { GetDailySummaryQueryParams, GetDailySummaryResponse, GetWeeklyStatsResponse } from "@workspace/api-zod";
 import { format, subDays } from "date-fns";
+import { calculateDailyGoal } from "../lib/calorie-calc.js";
 
 const router: IRouter = Router();
 
@@ -10,9 +11,9 @@ function todayStr() {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-async function getGoal(): Promise<number> {
-  const [settings] = await db.select().from(settingsTable).limit(1);
-  return settings?.dailyGoal ?? 2000;
+async function getUserGoal(userId: number): Promise<number> {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  return user ? calculateDailyGoal(user) : 2000;
 }
 
 router.get("/summary", async (req, res): Promise<void> => {
@@ -23,12 +24,13 @@ router.get("/summary", async (req, res): Promise<void> => {
   }
 
   const date = parsed.data.date ?? todayStr();
-  const dailyGoal = await getGoal();
+  const userId = req.session.userId!;
+  const dailyGoal = await getUserGoal(userId);
 
   const entries = await db
     .select()
     .from(foodEntriesTable)
-    .where(eq(foodEntriesTable.date, date));
+    .where(and(eq(foodEntriesTable.date, date), eq(foodEntriesTable.userId, userId)));
 
   const totalCalories = entries.reduce((sum, e) => sum + e.calories, 0);
 
@@ -66,7 +68,8 @@ router.get("/summary", async (req, res): Promise<void> => {
 });
 
 router.get("/weekly-stats", async (req, res): Promise<void> => {
-  const dailyGoal = await getGoal();
+  const userId = req.session.userId!;
+  const dailyGoal = await getUserGoal(userId);
   const today = new Date();
 
   const stats = [];
@@ -76,7 +79,7 @@ router.get("/weekly-stats", async (req, res): Promise<void> => {
     const entries = await db
       .select()
       .from(foodEntriesTable)
-      .where(eq(foodEntriesTable.date, dateStr));
+      .where(and(eq(foodEntriesTable.date, dateStr), eq(foodEntriesTable.userId, userId)));
     const totalCalories = entries.reduce((sum, e) => sum + e.calories, 0);
     stats.push({ date: dateStr, totalCalories, dailyGoal });
   }

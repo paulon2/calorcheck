@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, foodEntriesTable } from "@workspace/db";
 import {
   ListFoodEntriesQueryParams,
@@ -23,10 +23,12 @@ router.get("/food-entries", async (req, res): Promise<void> => {
   }
 
   const date = parsed.data.date ?? todayStr();
+  const userId = req.session.userId!;
+
   const entries = await db
     .select()
     .from(foodEntriesTable)
-    .where(eq(foodEntriesTable.date, date))
+    .where(and(eq(foodEntriesTable.date, date), eq(foodEntriesTable.userId, userId)))
     .orderBy(foodEntriesTable.createdAt);
 
   res.json(ListFoodEntriesResponse.parse(entries.map(e => ({
@@ -43,9 +45,12 @@ router.post("/food-entries", async (req, res): Promise<void> => {
   }
 
   const date = parsed.data.date ?? todayStr();
+  const userId = req.session.userId!;
+
   const [entry] = await db
     .insert(foodEntriesTable)
     .values({
+      userId,
       name: parsed.data.name,
       calories: parsed.data.calories,
       quantity: parsed.data.quantity,
@@ -68,9 +73,11 @@ router.delete("/food-entries/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  const userId = req.session.userId!;
+
   const [deleted] = await db
     .delete(foodEntriesTable)
-    .where(eq(foodEntriesTable.id, params.data.id))
+    .where(and(eq(foodEntriesTable.id, params.data.id), eq(foodEntriesTable.userId, userId)))
     .returning();
 
   if (!deleted) {

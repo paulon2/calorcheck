@@ -1,22 +1,19 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, settingsTable } from "@workspace/db";
+import { db, usersTable } from "@workspace/db";
 import { UpdateSettingsBody, GetSettingsResponse, UpdateSettingsResponse } from "@workspace/api-zod";
+import { calculateDailyGoal } from "../lib/calorie-calc.js";
 
 const router: IRouter = Router();
 
-async function ensureSettings() {
-  const [existing] = await db.select().from(settingsTable).limit(1);
-  if (!existing) {
-    const [created] = await db.insert(settingsTable).values({ dailyGoal: 2000 }).returning();
-    return created;
-  }
-  return existing;
-}
-
 router.get("/settings", async (req, res): Promise<void> => {
-  const settings = await ensureSettings();
-  res.json(GetSettingsResponse.parse(settings));
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId!));
+  if (!user) {
+    res.status(401).json({ error: "Nao autenticado" });
+    return;
+  }
+  const dailyGoal = calculateDailyGoal(user);
+  res.json(GetSettingsResponse.parse({ id: user.id, dailyGoal }));
 });
 
 router.put("/settings", async (req, res): Promise<void> => {
@@ -26,14 +23,13 @@ router.put("/settings", async (req, res): Promise<void> => {
     return;
   }
 
-  const existing = await ensureSettings();
   const [updated] = await db
-    .update(settingsTable)
-    .set({ dailyGoal: parsed.data.dailyGoal })
-    .where(eq(settingsTable.id, existing.id))
+    .update(usersTable)
+    .set({ customGoal: parsed.data.dailyGoal })
+    .where(eq(usersTable.id, req.session.userId!))
     .returning();
 
-  res.json(UpdateSettingsResponse.parse(updated));
+  res.json(UpdateSettingsResponse.parse({ id: updated.id, dailyGoal: calculateDailyGoal(updated) }));
 });
 
 export default router;
