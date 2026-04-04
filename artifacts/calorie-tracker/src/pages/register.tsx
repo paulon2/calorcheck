@@ -5,13 +5,12 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/auth-context";
-import { Salad, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { Salad, ChevronLeft, ChevronRight, Info, Check } from "lucide-react";
 
 const GOAL_OPTIONS = [
-  { value: "lose_strong", label: "Emagrecimento forte", description: "Deficit alto (‑25%)" },
-  { value: "lose_moderate", label: "Emagrecimento moderado", description: "Deficit moderado (‑15%)" },
-  { value: "lose_light", label: "Emagrecimento leve", description: "Deficit leve (‑10%)" },
+  { value: "lose_strong", label: "Emagrecimento forte", description: "Deficit alto (\u201125%)" },
+  { value: "lose_moderate", label: "Emagrecimento moderado", description: "Deficit moderado (\u201115%)" },
+  { value: "lose_light", label: "Emagrecimento leve", description: "Deficit leve (\u201110%)" },
   { value: "maintain", label: "Manter o peso", description: "Equilibrio calórico" },
   { value: "gain_light", label: "Ganho de massa leve", description: "Superavit leve (+10%)" },
   { value: "gain", label: "Ganho de massa", description: "Superavit moderado (+20%)" },
@@ -39,10 +38,10 @@ interface RegisterProps {
 }
 
 export default function Register({ onGoLogin }: RegisterProps) {
-  const { refetch } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   const { register, handleSubmit, watch, setValue, trigger, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -83,12 +82,44 @@ export default function Register({ onGoLogin }: RegisterProps) {
         setServerError(resBody.error ?? "Erro ao cadastrar");
         return;
       }
-      await refetch();
+      // Show success screen instead of auto-login, so user sees confirmation
+      setRegistered(true);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // ── Success screen ──────────────────────────────────────────────────────────
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-10 max-w-md mx-auto">
+        <div className="w-full">
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-2">
+              <Salad size={28} className="text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold">CalorCheck</h1>
+          </div>
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-sm text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+              <Check size={30} className="text-green-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Cadastro realizado!</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Sua conta foi criada com sucesso. Faca login para comecar a usar o CalorCheck.
+              </p>
+            </div>
+            <Button className="w-full" onClick={onGoLogin}>
+              Fazer login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Form ────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-start px-6 py-8 max-w-md mx-auto">
       <div className="w-full">
@@ -154,7 +185,7 @@ export default function Register({ onGoLogin }: RegisterProps) {
                 <div className="bg-primary/5 border border-primary/15 rounded-xl p-3 flex gap-2">
                   <Info size={15} className="text-primary shrink-0 mt-0.5" />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Esses dados sao opcionais e usados para calcular sua meta calórica personalizada usando a formula de Harris-Benedict. Voce pode pular e ajustar depois.
+                    Esses dados sao opcionais e usados para calcular sua meta calórica personalizada. Voce pode pular e ajustar depois.
                   </p>
                 </div>
 
@@ -226,7 +257,13 @@ export default function Register({ onGoLogin }: RegisterProps) {
                 )}
 
                 <div className="flex gap-3">
-                  <Button type="submit" variant="outline" className="flex-1" disabled={isLoading} onClick={() => setValue("goalType", undefined)}>
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isLoading}
+                    onClick={() => setValue("goalType", undefined)}
+                  >
                     {isLoading ? "..." : "Pular"}
                   </Button>
                   <Button type="submit" className="flex-1" disabled={isLoading}>
