@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useSearch } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +11,7 @@ import Settings from "@/pages/settings";
 import Recipes from "@/pages/recipes";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import ResetPassword from "@/pages/reset-password";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -25,6 +26,19 @@ const queryClient = new QueryClient({
 function AuthGate() {
   const { user, isLoading } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const isResetPage = window.location.pathname.includes("reset-password") || params.has("token");
+
+  // Show reset-password page without requiring login
+  if (isResetPage) {
+    return (
+      <ResetPassword onGoLogin={() => {
+        window.history.replaceState({}, "", "/");
+        setShowRegister(false);
+      }} />
+    );
+  }
 
   if (isLoading) {
     return (
@@ -64,7 +78,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <AuthGate />
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AuthGate />
+          </WouterRouter>
         </AuthProvider>
         <Toaster />
       </TooltipProvider>
