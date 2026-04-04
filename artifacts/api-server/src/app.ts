@@ -60,8 +60,8 @@ app.use(
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 dias
       httpOnly: true,
-      secure: true, // true em produção
-      sameSite: "none" ? "none" : "lax",
+      secure: isProd, // true em produção
+      sameSite: isProd ? "none" : "lax",
     },
   })
 );
