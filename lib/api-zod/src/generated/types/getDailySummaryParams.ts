@@ -7,8 +7,5 @@
  */
 
 export type GetDailySummaryParams = {
-  /**
-   * Date in YYYY-MM-DD format. Defaults to today.
-   */
   date?: string;
 };

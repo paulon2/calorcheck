@@ -6,6 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListFoodEntriesParams = {
-  date?: string;
+export type ListRecipesParams = {
+  favoritesOnly?: string;
 };

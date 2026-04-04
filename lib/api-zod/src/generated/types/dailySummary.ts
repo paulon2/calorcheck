@@ -12,7 +12,6 @@ export interface DailySummary {
   date: string;
   totalCalories: number;
   dailyGoal: number;
-  /** Positive = calories left, negative = over goal */
   remaining: number;
   percentUsed: number;
   breakdownByMeal: DailySummaryBreakdownByMeal;

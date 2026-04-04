@@ -8,7 +8,6 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -20,7 +19,7 @@ export const HealthCheckResponse = zod.object({
  */
 export const GetSettingsResponse = zod.object({
   id: zod.number(),
-  dailyGoal: zod.number().describe("Daily calorie goal in kcal"),
+  dailyGoal: zod.number(),
 });
 
 /**
@@ -38,7 +37,7 @@ export const UpdateSettingsBody = zod.object({
 
 export const UpdateSettingsResponse = zod.object({
   id: zod.number(),
-  dailyGoal: zod.number().describe("Daily calorie goal in kcal"),
+  dailyGoal: zod.number(),
 });
 
 /**
@@ -54,7 +53,7 @@ export const ListFoodEntriesResponseItem = zod.object({
   calories: zod.number(),
   quantity: zod.string(),
   meal: zod.enum(["breakfast", "lunch", "dinner", "snack"]),
-  date: zod.string().describe("Date in YYYY-MM-DD format"),
+  date: zod.string(),
   createdAt: zod.string(),
 });
 export const ListFoodEntriesResponse = zod.array(ListFoodEntriesResponseItem);
@@ -69,10 +68,7 @@ export const CreateFoodEntryBody = zod.object({
   calories: zod.number().min(createFoodEntryBodyCaloriesMin),
   quantity: zod.string(),
   meal: zod.enum(["breakfast", "lunch", "dinner", "snack"]),
-  date: zod
-    .string()
-    .optional()
-    .describe("Date in YYYY-MM-DD format. Defaults to today."),
+  date: zod.string().optional(),
 });
 
 /**
@@ -83,7 +79,7 @@ export const DeleteFoodEntryParams = zod.object({
 });
 
 /**
- * @summary Get daily calorie summary for a given date
+ * @summary Get daily calorie summary
  */
 export const GetDailySummaryQueryParams = zod.object({
   date: zod.coerce.string().optional(),
@@ -93,9 +89,7 @@ export const GetDailySummaryResponse = zod.object({
   date: zod.string(),
   totalCalories: zod.number(),
   dailyGoal: zod.number(),
-  remaining: zod
-    .number()
-    .describe("Positive = calories left, negative = over goal"),
+  remaining: zod.number(),
   percentUsed: zod.number(),
   breakdownByMeal: zod.object({
     breakfast: zod.number(),
@@ -115,3 +109,98 @@ export const GetWeeklyStatsResponseItem = zod.object({
   dailyGoal: zod.number(),
 });
 export const GetWeeklyStatsResponse = zod.array(GetWeeklyStatsResponseItem);
+
+/**
+ * @summary List all recipes
+ */
+export const ListRecipesQueryParams = zod.object({
+  favoritesOnly: zod.coerce.string().optional(),
+});
+
+export const ListRecipesResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  ingredients: zod.string(),
+  instructions: zod.string(),
+  calories: zod.number().nullish(),
+  photoPath: zod.string().nullish(),
+  isFavorite: zod.boolean(),
+  createdAt: zod.string(),
+});
+export const ListRecipesResponse = zod.array(ListRecipesResponseItem);
+
+/**
+ * @summary Create a recipe
+ */
+export const CreateRecipeBody = zod.object({
+  title: zod.string(),
+  description: zod.string().optional(),
+  ingredients: zod.string(),
+  instructions: zod.string(),
+  calories: zod.number().nullish(),
+  photoPath: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a recipe
+ */
+export const GetRecipeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetRecipeResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  ingredients: zod.string(),
+  instructions: zod.string(),
+  calories: zod.number().nullish(),
+  photoPath: zod.string().nullish(),
+  isFavorite: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a recipe
+ */
+export const DeleteRecipeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Toggle recipe favorite status
+ */
+export const ToggleRecipeFavoriteParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ToggleRecipeFavoriteBody = zod.object({
+  isFavorite: zod.boolean(),
+});
+
+export const ToggleRecipeFavoriteResponse = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string(),
+  ingredients: zod.string(),
+  instructions: zod.string(),
+  calories: zod.number().nullish(),
+  photoPath: zod.string().nullish(),
+  isFavorite: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Request a presigned upload URL
+ */
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string(),
+  size: zod.number(),
+  contentType: zod.string(),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
+});

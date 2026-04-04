@@ -13,7 +13,6 @@ export interface FoodEntry {
   calories: number;
   quantity: string;
   meal: FoodEntryMeal;
-  /** Date in YYYY-MM-DD format */
   date: string;
   createdAt: string;
 }

@@ -8,6 +8,7 @@
 
 export * from "./createFoodEntryBody";
 export * from "./createFoodEntryBodyMeal";
+export * from "./createRecipeBody";
 export * from "./dailySummary";
 export * from "./dailySummaryBreakdownByMeal";
 export * from "./dailySummaryStatus";
@@ -17,5 +18,10 @@ export * from "./foodEntryMeal";
 export * from "./getDailySummaryParams";
 export * from "./healthStatus";
 export * from "./listFoodEntriesParams";
+export * from "./listRecipesParams";
+export * from "./recipe";
+export * from "./requestUploadUrlBody";
+export * from "./requestUploadUrlResponse";
 export * from "./settings";
+export * from "./toggleFavoriteBody";
 export * from "./updateSettingsBody";

@@ -13,6 +13,5 @@ export interface CreateFoodEntryBody {
   calories: number;
   quantity: string;
   meal: CreateFoodEntryBodyMeal;
-  /** Date in YYYY-MM-DD format. Defaults to today. */
   date?: string;
 }

@@ -11,7 +11,6 @@ export interface HealthStatus {
 
 export interface Settings {
   id: number;
-  /** Daily calorie goal in kcal */
   dailyGoal: number;
 }
 
@@ -38,7 +37,6 @@ export interface FoodEntry {
   calories: number;
   quantity: string;
   meal: FoodEntryMeal;
-  /** Date in YYYY-MM-DD format */
   date: string;
   createdAt: string;
 }
@@ -59,7 +57,6 @@ export interface CreateFoodEntryBody {
   calories: number;
   quantity: string;
   meal: CreateFoodEntryBodyMeal;
-  /** Date in YYYY-MM-DD format. Defaults to today. */
   date?: string;
 }
 
@@ -83,7 +80,6 @@ export interface DailySummary {
   date: string;
   totalCalories: number;
   dailyGoal: number;
-  /** Positive = calories left, negative = over goal */
   remaining: number;
   percentUsed: number;
   breakdownByMeal: DailySummaryBreakdownByMeal;
@@ -96,16 +92,54 @@ export interface DayStats {
   dailyGoal: number;
 }
 
+export interface Recipe {
+  id: number;
+  title: string;
+  description: string;
+  ingredients: string;
+  instructions: string;
+  /** @nullable */
+  calories?: number | null;
+  /** @nullable */
+  photoPath?: string | null;
+  isFavorite: boolean;
+  createdAt: string;
+}
+
+export interface CreateRecipeBody {
+  title: string;
+  description?: string;
+  ingredients: string;
+  instructions: string;
+  /** @nullable */
+  calories?: number | null;
+  /** @nullable */
+  photoPath?: string | null;
+}
+
+export interface ToggleFavoriteBody {
+  isFavorite: boolean;
+}
+
+export interface RequestUploadUrlBody {
+  name: string;
+  size: number;
+  contentType: string;
+}
+
+export interface RequestUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
+
 export type ListFoodEntriesParams = {
-  /**
-   * Date in YYYY-MM-DD format. Defaults to today.
-   */
   date?: string;
 };
 
 export type GetDailySummaryParams = {
-  /**
-   * Date in YYYY-MM-DD format. Defaults to today.
-   */
   date?: string;
+};
+
+export type ListRecipesParams = {
+  favoritesOnly?: string;
 };

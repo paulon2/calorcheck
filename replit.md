@@ -1,56 +1,77 @@
-# Workspace
+# CalorCheck — Controle de Calorias
 
-## Overview
+A Portuguese-language daily calorie tracker webapp designed for mobile use (max-width 448px), with plans for future Android/iOS migration.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+## Architecture
 
-## Stack
+**Monorepo** managed by pnpm workspaces.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- `artifacts/calorie-tracker` — React + Vite frontend (Tailwind CSS, shadcn/ui, wouter routing)
+- `artifacts/api-server` — Express REST API (Fastify-like structure, TypeScript)
+- `lib/db` — Drizzle ORM schema + migrations (PostgreSQL)
+- `lib/api-spec` — OpenAPI 3.0 spec (`openapi.yaml`)
+- `lib/api-client-react` — Auto-generated React Query hooks from API spec
+- `lib/object-storage-web` — Uppy-based file upload component (recipe photos)
 
-## Key Commands
+## Features
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
+### Dashboard (`/`)
+- Calorie ring (progress circle) with daily goal
+- Meal breakdown cards: Café, Almoço, Jantar, Lanche
+- Date navigation (prev/next day)
+- Food entry list with edit/delete
+- Alert banners: on_track / warning / over_goal
 
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+### Histórico (`/history`)
+- Weekly bar chart using Recharts
+- 7-day calorie history
 
-## Apps
+### Receitas (`/recipes`)
+- Recipe list with photo, title, description, ingredients, instructions, calories/serving
+- Favorites toggle (heart icon)
+- Photo upload via object storage (GCS bucket)
+- Expandable card view for full recipe details
+- Tabs: Todas / Favoritas
 
-### CalorCheck — Controle de Calorias (`artifacts/calorie-tracker`)
+### Ajustes (`/settings`)
+- Custom daily calorie goal input
+- Goal presets by category:
+  - Emagrecimento forte: 1200 kcal
+  - Emagrecimento moderado: 1500 kcal
+  - Emagrecimento leve: 1800 kcal
+  - Manutenção do peso: 2000 kcal
+  - Ganho de massa leve: 2300 kcal
+  - Ganho de massa: 2700 kcal
+- Ebook link: saudavelarteculinaria.com.br/codigo-doce-livre (senha: docesemculpa2026)
 
-A daily calorie tracker webapp in Portuguese. Features:
-- Dashboard with calorie ring showing consumed vs goal
-- Meal breakdown by category (breakfast, lunch, dinner, snack)
-- Date navigation to browse past days
-- Add food entries with name, calories, quantity, and meal type
-- Alert banners for warning (>80% goal) and over-goal states
-- Weekly history with bar chart (Recharts)
-- Settings page to configure daily calorie goal
-- Mobile-first responsive design (max-width 448px)
-- Warm coral/cream color palette with Outfit font
+## Database Schema (PostgreSQL via Drizzle)
 
-### API Server (`artifacts/api-server`)
+- `settings` — Single row: `dailyGoal` (default 2000 kcal)
+- `food_entries` — `id, name, calories, quantity, meal, date, createdAt`
+- `recipes` — `id, title, description, ingredients, instructions, calories, photoPath, isFavorite, createdAt`
 
-REST API built with Express 5. Endpoints:
-- `GET/PUT /api/settings` — daily goal configuration
-- `GET /api/food-entries?date=YYYY-MM-DD` — list entries by date
-- `POST /api/food-entries` — add food entry
-- `DELETE /api/food-entries/:id` — remove food entry
-- `GET /api/summary?date=YYYY-MM-DD` — daily summary with status
-- `GET /api/weekly-stats` — last 7 days stats
+## API Routes
 
-### DB Schema (`lib/db/src/schema/`)
-- `settings` — single row with `daily_goal` (default 2000 kcal)
-- `food_entries` — food diary with name, calories, quantity, meal, date
+- `GET/PATCH /api/settings`
+- `GET/POST /api/food-entries`
+- `GET /api/summary?date=YYYY-MM-DD`
+- `GET /api/weekly-stats`
+- `GET/POST /api/recipes`
+- `GET/DELETE /api/recipes/:id`
+- `PATCH /api/recipes/:id/favorite`
+- `POST /api/storage/uploads/request-url`
+- `GET /api/storage/objects/*`
+
+## Design
+
+- Color palette: coral/cream — primary: `hsl(15 86% 62%)`, bg: `hsl(40 33% 98%)`
+- Font: Outfit (Google Fonts)
+- Mobile-first (max-width 448px)
+- Bottom nav bar: Hoje / Semana / Receitas / Ajustes
+
+## Environment Variables
+
+- `DATABASE_URL` — PostgreSQL connection string
+- `DEFAULT_OBJECT_STORAGE_BUCKET_ID` — GCS bucket ID for recipe photos
+- `PRIVATE_OBJECT_DIR` — Private object storage directory
+- `SESSION_SECRET` — Session secret

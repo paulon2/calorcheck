@@ -8,6 +8,5 @@
 
 export interface Settings {
   id: number;
-  /** Daily calorie goal in kcal */
   dailyGoal: number;
 }

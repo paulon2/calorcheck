@@ -6,6 +6,7 @@ import { Layout } from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
 import History from "@/pages/history";
 import Settings from "@/pages/settings";
+import Recipes from "@/pages/recipes";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -23,6 +24,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/history" component={History} />
+        <Route path="/recipes" component={Recipes} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>

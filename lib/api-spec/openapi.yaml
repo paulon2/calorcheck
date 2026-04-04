@@ -16,13 +16,16 @@ tags:
     description: Food diary entries
   - name: summary
     description: Daily summary and stats
+  - name: recipes
+    description: User recipes
+  - name: storage
+    description: Object storage
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -72,7 +75,6 @@ paths:
           required: false
           schema:
             type: string
-            description: "Date in YYYY-MM-DD format. Defaults to today."
       responses:
         "200":
           description: List of food entries
@@ -119,14 +121,13 @@ paths:
     get:
       operationId: getDailySummary
       tags: [summary]
-      summary: Get daily calorie summary for a given date
+      summary: Get daily calorie summary
       parameters:
         - name: date
           in: query
           required: false
           schema:
             type: string
-            description: "Date in YYYY-MM-DD format. Defaults to today."
       responses:
         "200":
           description: Daily summary
@@ -150,6 +151,120 @@ paths:
                 items:
                   $ref: "#/components/schemas/DayStats"
 
+  /recipes:
+    get:
+      operationId: listRecipes
+      tags: [recipes]
+      summary: List all recipes
+      parameters:
+        - name: favoritesOnly
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of recipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Recipe"
+    post:
+      operationId: createRecipe
+      tags: [recipes]
+      summary: Create a recipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecipeBody"
+      responses:
+        "201":
+          description: Created recipe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+
+  /recipes/{id}:
+    get:
+      operationId: getRecipe
+      tags: [recipes]
+      summary: Get a recipe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Recipe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+    delete:
+      operationId: deleteRecipe
+      tags: [recipes]
+      summary: Delete a recipe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /recipes/{id}/favorite:
+    patch:
+      operationId: toggleRecipeFavorite
+      tags: [recipes]
+      summary: Toggle recipe favorite status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ToggleFavoriteBody"
+      responses:
+        "200":
+          description: Updated recipe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: Upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -157,8 +272,7 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     Settings:
       type: object
@@ -167,10 +281,7 @@ components:
           type: integer
         dailyGoal:
           type: integer
-          description: Daily calorie goal in kcal
-      required:
-        - id
-        - dailyGoal
+      required: [id, dailyGoal]
 
     UpdateSettingsBody:
       type: object
@@ -179,8 +290,7 @@ components:
           type: integer
           minimum: 500
           maximum: 10000
-      required:
-        - dailyGoal
+      required: [dailyGoal]
 
     FoodEntry:
       type: object
@@ -198,17 +308,9 @@ components:
           enum: [breakfast, lunch, dinner, snack]
         date:
           type: string
-          description: "Date in YYYY-MM-DD format"
         createdAt:
           type: string
-      required:
-        - id
-        - name
-        - calories
-        - quantity
-        - meal
-        - date
-        - createdAt
+      required: [id, name, calories, quantity, meal, date, createdAt]
 
     CreateFoodEntryBody:
       type: object
@@ -225,12 +327,7 @@ components:
           enum: [breakfast, lunch, dinner, snack]
         date:
           type: string
-          description: "Date in YYYY-MM-DD format. Defaults to today."
-      required:
-        - name
-        - calories
-        - quantity
-        - meal
+      required: [name, calories, quantity, meal]
 
     DailySummary:
       type: object
@@ -243,7 +340,6 @@ components:
           type: integer
         remaining:
           type: integer
-          description: Positive = calories left, negative = over goal
         percentUsed:
           type: number
         breakdownByMeal:
@@ -261,14 +357,7 @@ components:
         status:
           type: string
           enum: [on_track, warning, over_goal]
-      required:
-        - date
-        - totalCalories
-        - dailyGoal
-        - remaining
-        - percentUsed
-        - breakdownByMeal
-        - status
+      required: [date, totalCalories, dailyGoal, remaining, percentUsed, breakdownByMeal, status]
 
     DayStats:
       type: object
@@ -279,7 +368,71 @@ components:
           type: integer
         dailyGoal:
           type: integer
-      required:
-        - date
-        - totalCalories
-        - dailyGoal
+      required: [date, totalCalories, dailyGoal]
+
+    Recipe:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        ingredients:
+          type: string
+        instructions:
+          type: string
+        calories:
+          type: ["integer", "null"]
+        photoPath:
+          type: ["string", "null"]
+        isFavorite:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, title, description, ingredients, instructions, isFavorite, createdAt]
+
+    CreateRecipeBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        ingredients:
+          type: string
+        instructions:
+          type: string
+        calories:
+          type: ["integer", "null"]
+        photoPath:
+          type: ["string", "null"]
+      required: [title, ingredients, instructions]
+
+    ToggleFavoriteBody:
+      type: object
+      properties:
+        isFavorite:
+          type: boolean
+      required: [isFavorite]
+
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+      required: [name, size, contentType]
+
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+      required: [uploadURL, objectPath]
