@@ -6,3 +6,9 @@ id = "sUqSfXxmImgmXBxk-WxL3"
 uri = "file://DEPLOY.md"
 type = "text"
 title = "Guia de Implementação — CalorCheck"
+
+[[outputs]]
+id = "U40ymxzZqbF4n1qpeAO4u"
+uri = "file://DEPLOY-CPANEL.md"
+type = "text"
+title = "Manual de Implementação no cPanel"
