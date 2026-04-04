@@ -6,6 +6,8 @@ import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { pool } from "@workspace/db";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const PgSession = connectPgSimple(session);
 
@@ -59,6 +61,18 @@ app.use(
   }),
 );
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const frontendDist = path.resolve(
+  __dirname,
+  "../../calorie-tracker/dist/public"
+);
+
+app.use(express.static(frontendDist));
 app.use("/api", router);
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(frontendDist, "index.html"));
+});
 
 export default app;
