@@ -10,26 +10,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const PgSession = connectPgSimple(session);
-
 const app: Express = express();
 
 app.use(
   pinoHttp({
     logger,
-    serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
-    },
   }),
 );
 
@@ -39,6 +24,7 @@ app.use(
     credentials: true,
   }),
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -69,9 +55,10 @@ const frontendDist = path.resolve(
   "../../calorie-tracker/dist/public"
 );
 
-app.use(express.static(frontendDist));
 app.use("/api", router);
-app.get("*", (_req, res) => {
+app.use(express.static(frontendDist));
+
+app.use((_req, res) => {
   res.sendFile(path.join(frontendDist, "index.html"));
 });
 
